@@ -3,12 +3,24 @@ Semantic Search System using FAISS and OpenAI Embeddings
 Handles vector storage and retrieval for examples knowledge base
 """
 
-import faiss
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    print("Warning: FAISS not available. Semantic search will be disabled.")
+
 import numpy as np
 import json
 import os
 from typing import List, Dict, Tuple, Optional
-from openai import OpenAI
+
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 from langchain_anthropic import ChatAnthropic
 from config import Config
 
@@ -37,21 +49,43 @@ class SemanticSearchManager:
     
     def load_or_create_index(self):
         """Load existing FAISS index or create new one"""
-        if os.path.exists(Config.FAISS_INDEX_PATH):
-            self.index = faiss.read_index(Config.FAISS_INDEX_PATH)
+        if not FAISS_AVAILABLE:
+            self.index = None
+            return
             
-            # Load metadata
-            if os.path.exists(Config.FAISS_METADATA_PATH):
-                with open(Config.FAISS_METADATA_PATH, 'r') as f:
-                    self.metadata = json.load(f)
-        else:
-            # Create new FAISS index (L2 distance)
-            self.index = faiss.IndexFlatL2(self.dimension)
-            self.metadata = {}
+        # Create directory if it doesn't exist
+        index_dir = os.path.dirname(Config.FAISS_INDEX_PATH) or '.'
+        if not os.path.exists(index_dir):
+            try:
+                os.makedirs(index_dir, exist_ok=True)
+            except PermissionError:
+                print(f"Warning: Cannot create {index_dir}. Semantic search disabled.")
+                self.index = None
+                return
+        
+        try:
+            if os.path.exists(Config.FAISS_INDEX_PATH):
+                self.index = faiss.read_index(Config.FAISS_INDEX_PATH)
+                
+                # Load metadata
+                if os.path.exists(Config.FAISS_METADATA_PATH):
+                    with open(Config.FAISS_METADATA_PATH, 'r') as f:
+                        self.metadata = json.load(f)
+            else:
+                # Create new FAISS index (L2 distance)
+                self.index = faiss.IndexFlatL2(self.dimension)
+                self.metadata = {}
+        except Exception as e:
+            print(f"Warning: FAISS index error: {e}. Semantic search disabled.")
+            self.index = None
     
     def save_index(self):
         """Save FAISS index and metadata to disk"""
-        faiss.write_index(self.index, Config.FAISS_INDEX_PATH)
+        if not FAISS_AVAILABLE or self.index is None:
+            return
+        
+        try:
+            faiss.write_index(self.index, Config.FAISS_INDEX_PATH)
         
         with open(Config.FAISS_METADATA_PATH, 'w') as f:
             json.dump(self.metadata, f, indent=2)
