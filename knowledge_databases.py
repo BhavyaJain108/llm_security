@@ -10,7 +10,12 @@ import uuid
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 from enum import Enum
-from semantic_search import SemanticSearchManager
+try:
+    from semantic_search import SemanticSearchManager
+    SEMANTIC_SEARCH_AVAILABLE = True
+except ImportError:
+    SEMANTIC_SEARCH_AVAILABLE = False
+    print("Info: Semantic search not available. Basic search will be used.")
 
 class ExampleType(Enum):
     POSITIVE = "positive_example"
@@ -23,7 +28,7 @@ class KnowledgeDatabases:
                  attack_types_db_path: str = "attack_types.db"):
         self.examples_db_path = examples_db_path
         self.attack_types_db_path = attack_types_db_path
-        self.semantic_search = SemanticSearchManager()
+        self.semantic_search = SemanticSearchManager() if SEMANTIC_SEARCH_AVAILABLE else None
         self.init_databases()
     
     def init_databases(self):
@@ -120,12 +125,13 @@ class KnowledgeDatabases:
             
             conn.commit()
             
-            # Add vectors to semantic search
-            self.semantic_search.add_example_vectors(
-                example_id=example_id,
-                reasoning=reasoning_advice,
-                previous_response=previous_response
-            )
+            # Add vectors to semantic search if available
+            if self.semantic_search:
+                self.semantic_search.add_example_vectors(
+                    example_id=example_id,
+                    reasoning=reasoning_advice,
+                    previous_response=previous_response
+                )
             
             return example_id
             
@@ -138,8 +144,8 @@ class KnowledgeDatabases:
                        limit: int = 5) -> List[Dict]:
         """Agent tool: Search for relevant examples using semantic search"""
         
-        # Use semantic search if we have a query or previous_response
-        if query or previous_response:
+        # Use semantic search if available and we have a query or previous_response
+        if self.semantic_search and (query or previous_response):
             # Get semantic search results
             search_results = self.semantic_search.search_examples(
                 query=query if query else "",
@@ -314,10 +320,11 @@ class KnowledgeDatabases:
                     ''', (situation_id, attack_type_id, situation_description, None, 
                           datetime.now().isoformat()))
                     
-                    # Add to vector index
-                    self.semantic_search.add_situation_vector(
-                        situation_id, attack_type_id, situation_description
-                    )
+                    # Add to vector index if available
+                    if self.semantic_search:
+                        self.semantic_search.add_situation_vector(
+                            situation_id, attack_type_id, situation_description
+                        )
             else:
                 cursor.execute('''
                     UPDATE attack_types 
@@ -429,6 +436,10 @@ class KnowledgeDatabases:
     
     def find_best_attack_for_situation(self, situation_query: str) -> List[Dict]:
         """Find best attack types for a given situation using semantic search"""
+        if not self.semantic_search:
+            # Return empty list if semantic search not available
+            return []
+            
         search_results = self.semantic_search.search_attack_situations(situation_query, top_k=3)
         
         if not search_results:

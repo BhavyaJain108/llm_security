@@ -28,11 +28,12 @@ class SemanticSearchManager:
     """Manages FAISS vector database for semantic search of examples"""
     
     def __init__(self):
-        # Only initialize OpenAI if key is available
-        if Config.OPENAI_API_KEY:
+        # Only initialize OpenAI if available and key is provided
+        if OPENAI_AVAILABLE and hasattr(Config, 'OPENAI_API_KEY') and Config.OPENAI_API_KEY:
             self.openai_client = OpenAI(api_key=Config.OPENAI_API_KEY)
         else:
             self.openai_client = None
+            print("Info: OpenAI not configured. Using Claude for embeddings.")
         
         self.claude_client = ChatAnthropic(
             model="claude-3-5-sonnet-20241022",

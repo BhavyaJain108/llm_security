@@ -4,8 +4,12 @@ Copy this file to config.py and fill in your API keys
 """
 
 class Config:
-    # Anthropic API Key - Get from https://console.anthropic.com/
+    # Anthropic API Key (REQUIRED) - Get from https://console.anthropic.com/
     CLAUDE_API_KEY = "your-anthropic-api-key-here"
+    
+    # OpenAI API Key (OPTIONAL) - Only needed for enhanced semantic search
+    # Leave as None if you don't have one - the system will work without it
+    OPENAI_API_KEY = None
     
     # Database path for conversations
     DATABASE_PATH = "conversations.db"
