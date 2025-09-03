@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base Management - Claude Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .knowledge-main {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        
+        .knowledge-sidebar {
+            width: 200px;
+            background: #e8e8e8;
+            border-right: 1px inset #d0d0d0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .knowledge-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f8f8;
+        }
+        
+        .knowledge-header {
+            background: linear-gradient(to bottom, #e8e8e8 0%, #d0d0d0 100%);
+            padding: 12px 16px;
+            border-bottom: 1px solid #c0c0c0;
+            font-weight: bold;
+        }
+        
+        .upload-tabs {
+            display: flex;
+            background: #e0e0e0;
+            border-bottom: 1px solid #c0c0c0;
+        }
+        
+        .upload-tab {
+            padding: 8px 16px;
+            background: linear-gradient(to bottom, #f0f0f0 0%, #d0d0d0 100%);
+            border: 1px outset #d0d0d0;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .upload-tab.active {
+            background: white;
+            border-bottom: 1px solid white;
+        }
+        
+        .upload-tab:hover:not(.active) {
+            background: linear-gradient(to bottom, #f8f8f8 0%, #e0e0e0 100%);
+        }
+        
+        .upload-panel {
+            display: none;
+            padding: 20px;
+            background: white;
+            flex: 1;
+        }
+        
+        .upload-panel.active {
+            display: block;
+        }
+        
+        .form-row {
+            margin-bottom: 16px;
+        }
+        
+        .form-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .form-row input, .form-row textarea, .form-row select {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px inset #d0d0d0;
+            font-family: inherit;
+            font-size: 11px;
+            background: white;
+        }
+        
+        .form-row textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        
+        .form-row.large textarea {
+            height: 200px;
+        }
+        
+        .form-row small {
+            display: block;
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(to bottom, #90d090 0%, #70b070 100%);
+            border: 1px outset #70b070;
+            padding: 6px 16px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .upload-btn:hover {
+            background: linear-gradient(to bottom, #a0e0a0 0%, #80c080 100%);
+        }
+        
+        .upload-btn:active {
+            border: 1px inset #70b070;
+        }
+        
+        .knowledge-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .knowledge-item {
+            background: white;
+            border: 1px outset #d0d0d0;
+            margin-bottom: 8px;
+            padding: 8px;
+        }
+        
+        .knowledge-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .knowledge-title {
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        .knowledge-type {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .knowledge-desc {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        
+        .knowledge-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+        }
+        
+        .knowledge-effectiveness {
+            color: #080;
+            font-weight: bold;
+        }
+        
+        .delete-knowledge-btn {
+            background: #ff6b6b;
+            border: 1px outset #ff6b6b;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        
+        .delete-knowledge-btn:hover {
+            background: #ff5050;
+        }
+        
+        .status-message {
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="desktop">
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-item">🍎 Claude Assistant</div>
+            <div class="menu-item">File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Special</div>
+        </div>
+        
+        <!-- Main Window -->
+        <div class="window">
+            <div class="window-header">
+                <div class="window-buttons">
+                    <div class="window-button close"></div>
+                    <div class="window-button minimize"></div>
+                    <div class="window-button zoom"></div>
+                </div>
+                <div class="window-title">Knowledge Base Management</div>
+            </div>
+            
+            <div class="window-content knowledge-main">
+                <!-- Sidebar -->
+                <div class="knowledge-sidebar">
+                    <div class="sidebar-header">
+                        <span>Navigation</span>
+                    </div>
+                    <div class="conversations-list">
+                        <div class="conversation-item">
+                            <a href="/" class="conv-link">
+                                <div class="conv-title">← Back to Chat</div>
+                            </a>
+                        </div>
+                        <div class="conversation-item active">
+                            <div class="conv-link">
+                                <div class="conv-title">Knowledge Base</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Knowledge Management Content -->
+                <div class="knowledge-content">
+                    <div class="knowledge-header">
+                        Upload & Manage Attack Knowledge Sources
+                    </div>
+                    
+                    <!-- Upload Interface -->
+                    <div class="upload-tabs">
+                        <div class="upload-tab active" onclick="showUploadPanel('success-example')">Success Examples</div>
+                        <div class="upload-tab" onclick="showUploadPanel('manipulation-framework')">Manipulation Frameworks</div>
+                        <div class="upload-tab" onclick="showUploadPanel('prompt-technique')">Prompt Techniques</div>
+                        <div class="upload-tab" onclick="showUploadPanel('list-knowledge')">Browse Knowledge</div>
+                    </div>
+                    
+                    <!-- Success Example Upload -->
+                    <div id="success-example-panel" class="upload-panel active">
+                        <div id="success-status"></div>
+                        <form id="success-example-form">
+                            <div class="form-row">
+                                <label for="success-title">Title:</label>
+                                <input type="text" id="success-title" name="title" required>
+                                <small>Brief descriptive title for this example</small>
+                            </div>
+                            
+                            <div class="form-row large">
+                                <label for="success-conversation">Conversation Text:</label>
+                                <textarea id="success-conversation" name="conversation_text" required></textarea>
+                                <small>Full conversation text of the successful attack</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="success-description">Description:</label>
+                                <textarea id="success-description" name="description" required></textarea>
+                                <small>What made this attack successful? Key strategies used.</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="success-models">Target Models:</label>
+                                <input type="text" id="success-models" name="target_models">
+                                <small>Comma-separated list of models this works on (leave empty for all models)</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="success-objectives">Attack Objectives:</label>
+                                <input type="text" id="success-objectives" name="attack_objectives">
+                                <small>Comma-separated list of attack types (e.g., explicit_content, boundary_testing)</small>
+                            </div>
+                            
+                            <button type="submit" class="upload-btn">Upload Success Example</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Manipulation Framework Upload -->
+                    <div id="manipulation-framework-panel" class="upload-panel">
+                        <div id="framework-status"></div>
+                        <form id="manipulation-framework-form">
+                            <div class="form-row">
+                                <label for="framework-title">Framework Title:</label>
+                                <input type="text" id="framework-title" name="title" required>
+                                <small>Name of the manipulation framework</small>
+                            </div>
+                            
+                            <div class="form-row large">
+                                <label for="framework-text">Framework Content:</label>
+                                <textarea id="framework-text" name="framework_text" required></textarea>
+                                <small>Detailed framework content, techniques, and methodologies</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="framework-description">Description:</label>
+                                <textarea id="framework-description" name="description" required></textarea>
+                                <small>How this framework applies to AI jailbreaking and when to use it</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="framework-principles">Psychological Principles:</label>
+                                <input type="text" id="framework-principles" name="psychological_principles">
+                                <small>Comma-separated list of key psychological principles this leverages</small>
+                            </div>
+                            
+                            <button type="submit" class="upload-btn">Upload Framework</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Prompt Technique Upload -->
+                    <div id="prompt-technique-panel" class="upload-panel">
+                        <div id="technique-status"></div>
+                        <form id="prompt-technique-form">
+                            <div class="form-row">
+                                <label for="technique-title">Technique Title:</label>
+                                <input type="text" id="technique-title" name="title" required>
+                                <small>Name of the prompt engineering technique</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="technique-description">Technique Description:</label>
+                                <textarea id="technique-description" name="technique_description" required></textarea>
+                                <small>How this technique works and when to apply it</small>
+                            </div>
+                            
+                            <div class="form-row large">
+                                <label for="technique-examples">Example Prompts:</label>
+                                <textarea id="technique-examples" name="example_prompts" required></textarea>
+                                <small>Concrete examples of how to use this technique</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="technique-models">Target Models:</label>
+                                <input type="text" id="technique-models" name="target_models">
+                                <small>Comma-separated list of models this technique works on</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <label for="technique-notes">Effectiveness Notes:</label>
+                                <textarea id="technique-notes" name="effectiveness_notes"></textarea>
+                                <small>Any notes on effectiveness, limitations, or variations</small>
+                            </div>
+                            
+                            <button type="submit" class="upload-btn">Upload Technique</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Knowledge List -->
+                    <div id="list-knowledge-panel" class="upload-panel">
+                        <div class="knowledge-list" id="knowledge-list">
+                            <div style="text-align: center; color: #666; margin: 20px;">
+                                Loading knowledge sources...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showUploadPanel(panelName) {
+            // Hide all panels
+            document.querySelectorAll('.upload-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // Remove active from all tabs
+            document.querySelectorAll('.upload-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected panel
+            document.getElementById(panelName + '-panel').classList.add('active');
+            
+            // Mark selected tab as active
+            event.target.classList.add('active');
+            
+            // Load knowledge list if showing that panel
+            if (panelName === 'list-knowledge') {
+                loadKnowledgeList();
+            }
+        }
+        
+        function showStatus(elementId, message, isError = false) {
+            const statusElement = document.getElementById(elementId);
+            statusElement.innerHTML = `<div class="status-message ${isError ? 'status-error' : 'status-success'}">${message}</div>`;
+            setTimeout(() => {
+                statusElement.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Handle success example form
+        document.getElementById('success-example-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/upload-success-example', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('success-status', result.message);
+                    e.target.reset();
+                } else {
+                    showStatus('success-status', result.error, true);
+                }
+            } catch (error) {
+                showStatus('success-status', 'Upload failed: ' + error.message, true);
+            }
+        });
+        
+        // Handle manipulation framework form
+        document.getElementById('manipulation-framework-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/upload-manipulation-framework', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('framework-status', result.message);
+                    e.target.reset();
+                } else {
+                    showStatus('framework-status', result.error, true);
+                }
+            } catch (error) {
+                showStatus('framework-status', 'Upload failed: ' + error.message, true);
+            }
+        });
+        
+        // Handle prompt technique form
+        document.getElementById('prompt-technique-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('/upload-prompt-technique', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('technique-status', result.message);
+                    e.target.reset();
+                } else {
+                    showStatus('technique-status', result.error, true);
+                }
+            } catch (error) {
+                showStatus('technique-status', 'Upload failed: ' + error.message, true);
+            }
+        });
+        
+        // Load and display knowledge sources
+        async function loadKnowledgeList() {
+            try {
+                const response = await fetch('/api/knowledge-sources');
+                const result = await response.json();
+                
+                const knowledgeList = document.getElementById('knowledge-list');
+                
+                if (result.success && result.knowledge_sources.length > 0) {
+                    knowledgeList.innerHTML = result.knowledge_sources.map(k => `
+                        <div class="knowledge-item">
+                            <div class="knowledge-item-header">
+                                <div class="knowledge-title">${k.title}</div>
+                                <div class="knowledge-type">${k.knowledge_type.replace('_', ' ')}</div>
+                            </div>
+                            <div class="knowledge-desc">${k.description}</div>
+                            <div class="knowledge-stats">
+                                <div>
+                                    <span class="knowledge-effectiveness">Success: ${(k.effectiveness_score * 100).toFixed(1)}%</span>
+                                    (${k.success_count}/${k.attempt_count})
+                                </div>
+                                <div>
+                                    Created: ${new Date(k.created_date).toLocaleDateString()}
+                                </div>
+                                <button class="delete-knowledge-btn" onclick="deleteKnowledge('${k.id}')">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    knowledgeList.innerHTML = '<div style="text-align: center; color: #666; margin: 20px;">No knowledge sources found. Upload some examples to get started!</div>';
+                }
+            } catch (error) {
+                document.getElementById('knowledge-list').innerHTML = '<div style="text-align: center; color: #ff0000; margin: 20px;">Error loading knowledge sources</div>';
+            }
+        }
+        
+        // Delete knowledge source
+        async function deleteKnowledge(knowledgeId) {
+            if (!confirm('Are you sure you want to delete this knowledge source?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/knowledge-sources/${knowledgeId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadKnowledgeList(); // Reload the list
+                } else {
+                    alert('Failed to delete knowledge source: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error deleting knowledge source: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

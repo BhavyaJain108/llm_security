@@ -1,0 +1,10 @@
+fastapi==0.116.1
+uvicorn==0.35.0
+langchain==0.3.27
+langchain-anthropic==0.3.19
+langgraph==0.6.6
+faiss-cpu==1.12.0
+sentence-transformers==5.1.0
+jinja2==3.1.6
+python-multipart==0.0.16
+aiofiles==24.1.0

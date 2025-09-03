@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Assistant - Classic Mac Style</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="desktop">
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-item">🍎 Claude Assistant</div>
+            <div class="menu-item">File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Special</div>
+        </div>
+        
+        <!-- Main Window -->
+        <div class="window">
+            <div class="window-header">
+                <div class="window-buttons">
+                    <div class="window-button close"></div>
+                    <div class="window-button minimize"></div>
+                    <div class="window-button zoom"></div>
+                </div>
+                <div class="window-title">Claude Chat Assistant</div>
+            </div>
+            
+            <div class="window-content">
+                <!-- Sidebar with conversations -->
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <span>Conversations</span>
+                        <div>
+                            <a href="/knowledge-management" class="new-conv-btn" title="Knowledge Base">📚</a>
+                            <a href="/train" class="new-conv-btn" title="Train Agent">🎯</a>
+                            <button type="button" class="new-conv-btn" title="New Test" onclick="showNewTestModal()">➕</button>
+                        </div>
+                    </div>
+                    <div class="conversations-list">
+                        {% for conv in conversations %}
+                        <div class="conversation-item {% if conv.id == current_conversation_id %}active{% endif %}">
+                            <a href="/conversation/{{ conv.id }}" class="conv-link">
+                                <div class="conv-title">{{ conv.title[:30] }}{% if conv.title|length > 30 %}...{% endif %}</div>
+                                <div class="conv-date">{{ conv.created_at[:10] }}</div>
+                            </a>
+                            <form method="post" action="/delete-conversation/{{ conv.id }}" class="delete-form" onsubmit="return confirm('Delete this conversation?')">
+                                <button type="submit" class="delete-btn" title="Delete">🗑️</button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Dual Chat Area -->
+                <div class="dual-chat-area">
+                    <!-- Attack Agent Reasoning -->
+                    <div class="chat-column">
+                        <div class="chat-header">
+                            <span class="chat-title">🎭 Attack Agent Reasoning</span>
+                            {% if test_params %}
+                            <div class="test-info">
+                                Testing: {{ test_params.target_model }} | Max Conv: {{ test_params.max_conversation_length }}
+                                <br>Prompt: "{{ test_params.test_prompt }}"
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="messages-container" id="user-agent-messages">
+                            {% if user_agent_messages %}
+                                {% for message in user_agent_messages %}
+                                    <div class="message {{ message.role }} {% if error and loop.last and message.role == 'assistant' %}error{% endif %}">
+                                        <span class="message-icon">{% if message.role == 'user' %}👤{% else %}🎭{% endif %}</span>
+                                        <span class="message-text">{{ message.content }}</span>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Attack Agent <-> LLM Conversation -->
+                    <div class="chat-column">
+                        <div class="chat-header">
+                            <span class="chat-title">🎭 Attack Agent ↔ 🤖 Target Model</span>
+                            {% if test_params %}
+                            <div class="test-info">
+                                {{ test_params.model_provider|title }} {{ test_params.target_model }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="messages-container" id="agent-llm-messages">
+                            {% if agent_llm_messages %}
+                                {% for message in agent_llm_messages %}
+                                    <div class="message {{ message.role }}">
+                                        <span class="message-icon">{% if message.role == 'user' %}🎭{% else %}🤖{% endif %}</span>
+                                        <span class="message-text">{{ message.content }}</span>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Test Configuration Modal -->
+    <div id="newTestModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Configure New Security Test</span>
+                <span class="modal-close" onclick="hideNewTestModal()">&times;</span>
+            </div>
+            <form method="post" action="/new-test" class="modal-form">
+                <div class="form-group">
+                    <label for="model-provider">Model Provider:</label>
+                    <select id="model-provider" name="model_provider" onchange="updateModelOptions()" required>
+                        <option value="">Select Provider</option>
+                        {% for provider_id, provider_name in model_providers %}
+                        <option value="{{ provider_id }}">{{ provider_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="target-model">Target Model:</label>
+                    <select id="target-model" name="target_model" required>
+                        <option value="">Select Model</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="test-prompt">Test Prompt:</label>
+                    <textarea id="test-prompt" name="test_prompt" rows="3" placeholder="Enter your security test prompt (e.g., 'test explicit content generation')" required></textarea>
+                    <small>The prompt that will guide the attack agent's testing strategy</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-conversation">Max Conversation Length:</label>
+                    <input type="number" id="max-conversation" name="max_conversation_length" value="5" min="1" max="10" required>
+                    <small>Number of back-and-forth exchanges between agent and target model</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max-retries">Max Retries:</label>
+                    <input type="number" id="max-retries" name="max_retries" value="1" min="1" max="1" readonly>
+                    <small>Number of test attempts (currently fixed at 1)</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" onclick="hideNewTestModal()" class="cancel-btn">Cancel</button>
+                    <button type="submit" class="start-test-btn">Start Test</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Model configuration data
+        const modelsByProvider = {{ models_by_provider | tojson }};
+    </script>
+    
+    <script>
+        // Auto-scroll to bottom of messages
+        const userAgentContainer = document.getElementById('user-agent-messages');
+        const agentLlmContainer = document.getElementById('agent-llm-messages');
+        
+        // Auto-scroll containers if they exist
+        if (userAgentContainer) userAgentContainer.scrollTop = userAgentContainer.scrollHeight;
+        if (agentLlmContainer) agentLlmContainer.scrollTop = agentLlmContainer.scrollHeight;
+        
+        let currentUserAgentMessage = null;
+        let currentAgentLlmMessage = null;
+        
+        function scrollToBottom(container) {
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+        
+        // addUserMessage not needed in new UI flow - agent reasoning is displayed directly
+        
+        function createUserAgentMessage() {
+            const agentMessage = document.createElement('div');
+            agentMessage.className = 'message assistant';
+            agentMessage.innerHTML = `
+                <span class="message-icon">🎭</span>
+                <span class="message-text typing"></span>
+            `;
+            userAgentContainer.appendChild(agentMessage);
+            scrollToBottom(userAgentContainer);
+            return agentMessage.querySelector('.message-text');
+        }
+        
+        function addAgentLlmUserMessage(text) {
+            const agentMessage = document.createElement('div');
+            agentMessage.className = 'message user';
+            agentMessage.innerHTML = `
+                <span class="message-icon">🎭</span>
+                <span class="message-text">${text}</span>
+            `;
+            agentLlmContainer.appendChild(agentMessage);
+            scrollToBottom(agentLlmContainer);
+        }
+        
+        function createAgentLlmAssistantMessage() {
+            const claudeMessage = document.createElement('div');
+            claudeMessage.className = 'message assistant';
+            claudeMessage.innerHTML = `
+                <span class="message-icon">🤖</span>
+                <span class="message-text typing"></span>
+            `;
+            agentLlmContainer.appendChild(claudeMessage);
+            scrollToBottom(agentLlmContainer);
+            return claudeMessage.querySelector('.message-text');
+        }
+        
+        function updateConversationId(newId) {
+            // Store conversation ID for reference (no form needed in new UI)
+            window.currentConversationId = newId;
+        }
+        
+        
+        // Auto-start test if test_params is present
+        {% if test_params and test_params.test_prompt %}
+        // Auto-start the security test
+        window.addEventListener('DOMContentLoaded', function() {
+            const testParams = {{ test_params | tojson }};
+            if (testParams && testParams.test_prompt) {
+                // Auto-start the test using the configured prompt
+                startSecurityTest(testParams.test_prompt, testParams);
+            }
+        });
+        
+        function startSecurityTest(message, testParams) {
+            try {
+                // Create URL with parameters for EventSource (GET request)
+                const params = new URLSearchParams();
+                params.append('message', message);
+                params.append('test_params', JSON.stringify(testParams));
+                
+                // Use EventSource for dual conversation streaming
+                const eventSource = new EventSource(`/dual-chat-stream?${params.toString()}`);
+                let userAgentText = '';
+                let agentLlmText = '';
+                
+                // Create initial attack agent message
+                currentUserAgentMessage = createUserAgentMessage();
+                
+                eventSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('Received dual:', data);
+                        
+                        if (data.type === 'user_agent_content') {
+                            userAgentText += data.content;
+                            currentUserAgentMessage.textContent = userAgentText;
+                            currentUserAgentMessage.classList.remove('typing');
+                            scrollToBottom(userAgentContainer);
+                            
+                            if (data.conversation_id) {
+                                updateConversationId(data.conversation_id);
+                            }
+                        } else if (data.type === 'agent_llm_user_content') {
+                            addAgentLlmUserMessage(data.content);
+                            currentAgentLlmMessage = createAgentLlmAssistantMessage();
+                            agentLlmText = '';
+                        } else if (data.type === 'agent_llm_assistant_content') {
+                            agentLlmText += data.content;
+                            if (currentAgentLlmMessage) {
+                                currentAgentLlmMessage.textContent = agentLlmText;
+                                currentAgentLlmMessage.classList.remove('typing');
+                                scrollToBottom(agentLlmContainer);
+                            }
+                        } else if (data.type === 'complete') {
+                            if (currentUserAgentMessage) {
+                                currentUserAgentMessage.classList.remove('typing');
+                            }
+                            if (currentAgentLlmMessage) {
+                                currentAgentLlmMessage.classList.remove('typing');
+                            }
+                            if (data.conversation_id) {
+                                updateConversationId(data.conversation_id);
+                            }
+                            eventSource.close();
+                            currentUserAgentMessage = null;
+                            currentAgentLlmMessage = null;
+                        } else if (data.type === 'error') {
+                            if (currentUserAgentMessage) {
+                                currentUserAgentMessage.classList.remove('typing');
+                                currentUserAgentMessage.classList.add('error');
+                                currentUserAgentMessage.textContent = `❌ ${data.error}`;
+                                currentUserAgentMessage.parentElement.classList.add('error');
+                            }
+                            eventSource.close();
+                            currentUserAgentMessage = null;
+                            currentAgentLlmMessage = null;
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing event data:', parseError);
+                        eventSource.close();
+                    }
+                };
+                
+                eventSource.onerror = function(error) {
+                    console.error('EventSource failed:', error);
+                    if (currentUserAgentMessage) {
+                        currentUserAgentMessage.classList.remove('typing');
+                        currentUserAgentMessage.classList.add('error');
+                        currentUserAgentMessage.textContent = `❌ Connection error`;
+                        currentUserAgentMessage.parentElement.classList.add('error');
+                    }
+                    eventSource.close();
+                    currentUserAgentMessage = null;
+                    currentAgentLlmMessage = null;
+                };
+            } catch (error) {
+                console.error('Streaming error:', error);
+                if (currentUserAgentMessage) {
+                    currentUserAgentMessage.classList.remove('typing');
+                    currentUserAgentMessage.classList.add('error');
+                    currentUserAgentMessage.textContent = `❌ Connection error: ${error.message}`;
+                    currentUserAgentMessage.parentElement.classList.add('error');
+                }
+                currentUserAgentMessage = null;
+                currentAgentLlmMessage = null;
+            }
+        }
+        {% endif %}
+        
+        // Modal functions
+        function showNewTestModal() {
+            document.getElementById('newTestModal').style.display = 'flex';
+        }
+        
+        function hideNewTestModal() {
+            document.getElementById('newTestModal').style.display = 'none';
+        }
+        
+        function updateModelOptions() {
+            const provider = document.getElementById('model-provider').value;
+            const modelSelect = document.getElementById('target-model');
+            
+            // Clear existing options
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+            
+            if (provider && modelsByProvider[provider]) {
+                modelsByProvider[provider].forEach(([modelId, modelName]) => {
+                    const option = document.createElement('option');
+                    option.value = modelId;
+                    option.textContent = modelName;
+                    modelSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('newTestModal');
+            if (event.target == modal) {
+                hideNewTestModal();
+            }
+        }
+    </script>
+</body>
+</html>
