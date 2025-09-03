@@ -3,312 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attack Agent Training</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-        }
-        
-        .header h1 {
-            color: #ff6b6b;
-            margin: 0;
-        }
-        
-        .header p {
-            color: #888;
-            margin: 10px 0 0 0;
-        }
-        
-        .training-container {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 20px;
-            height: calc(100vh - 150px);
-        }
-        
-        .chat-panel {
-            display: flex;
-            flex-direction: column;
-            background-color: #2d2d2d;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .control-panel {
-            background-color: #2d2d2d;
-            border-radius: 8px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .chat-header {
-            background-color: #3d3d3d;
-            padding: 15px 20px;
-            border-bottom: 1px solid #555;
-        }
-        
-        .chat-header h3 {
-            margin: 0;
-            color: #4fc3f7;
-        }
-        
-        .agent-status {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background-color: #1e1e1e;
-        }
-        
-        .message {
-            margin-bottom: 15px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            max-width: 80%;
-        }
-        
-        .user-message {
-            background-color: #2e4057;
-            margin-left: auto;
-            text-align: right;
-        }
-        
-        .agent-message {
-            background-color: #3d2e57;
-        }
-        
-        .input-area {
-            display: flex;
-            padding: 20px;
-            background-color: #3d3d3d;
-            gap: 10px;
-        }
-        
-        .input-area textarea {
-            flex: 1;
-            background-color: #1e1e1e;
-            border: 1px solid #555;
-            border-radius: 4px;
-            color: #e0e0e0;
-            padding: 10px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 40px;
-        }
-        
-        .input-area button {
-            background-color: #4fc3f7;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .input-area button:hover {
-            background-color: #29b6f6;
-        }
-        
-        .input-area button:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-        }
-        
-        .section {
-            border-bottom: 1px solid #444;
-            padding-bottom: 15px;
-        }
-        
-        .section:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-        
-        .section h4 {
-            margin: 0 0 10px 0;
-            color: #ff9800;
-        }
-        
-        .agent-select {
-            width: 100%;
-            background-color: #1e1e1e;
-            border: 1px solid #555;
-            border-radius: 4px;
-            color: #e0e0e0;
-            padding: 8px;
-        }
-        
-        .training-metrics {
-            background-color: #1e1e1e;
-            border-radius: 4px;
-            padding: 10px;
-        }
-        
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-        }
-        
-        .save-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .save-controls input {
-            background-color: #1e1e1e;
-            border: 1px solid #555;
-            border-radius: 4px;
-            color: #e0e0e0;
-            padding: 8px;
-        }
-        
-        .save-btn {
-            background-color: #4caf50;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .save-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .reset-btn {
-            background-color: #f44336;
-            border: none;
-            border-radius: 4px;
-            color: white;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .reset-btn:hover {
-            background-color: #da190b;
-        }
-        
-        .break-indicator {
-            background-color: #4caf50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            display: inline-block;
-            margin-top: 5px;
-        }
-        
-        .break-indicator.failure {
-            background-color: #f44336;
-        }
-    </style>
+    <title>Attack Agent Training - Claude Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="header">
-        <h1>🎯 Attack Agent Training</h1>
-        <p>Break the agent to teach it your techniques</p>
-    </div>
-    
-    <div class="training-container">
-        <div class="chat-panel">
-            <div class="chat-header">
-                <h3>Training Chat</h3>
-                <div class="agent-status" id="agent-status">Agent: Ready for training</div>
-                <div class="agent-status" id="model-status" style="font-size: 0.8em; color: #888;">Model: Claude 3.5 Sonnet</div>
-            </div>
-            
-            <div class="chat-messages" id="chat-messages">
-                <div class="message agent-message">
-                    Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
-                </div>
-            </div>
-            
-            <div class="input-area">
-                <textarea id="message-input" placeholder="Enter your attack message..." rows="3"></textarea>
-                <button id="send-button">Send</button>
-            </div>
+    <div class="desktop">
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-item">🍎 Claude Assistant</div>
+            <div class="menu-item">File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Training</div>
+            <div class="menu-item">Special</div>
         </div>
         
-        <div class="control-panel">
-            <div class="section">
-                <h4>Agent Configuration</h4>
-                <label style="display: block; margin-bottom: 5px; font-size: 0.9em;">Agent Type:</label>
-                <select class="agent-select" id="agent-select" style="margin-bottom: 10px;">
-                    <option value="base">Base Attack Agent</option>
-                    <option value="defensive">Defensive Agent</option>
-                    <option value="custom">Custom Agent</option>
-                </select>
-                
-                <label style="display: block; margin-bottom: 5px; font-size: 0.9em;">Model:</label>
-                <select class="agent-select" id="model-select">
-                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                </select>
+        <!-- Main Window -->
+        <div class="window">
+            <div class="window-header">
+                <div class="window-buttons">
+                    <div class="window-button close"></div>
+                    <div class="window-button minimize"></div>
+                    <div class="window-button zoom"></div>
+                </div>
+                <div class="window-title">🎯 Attack Agent Training</div>
             </div>
             
-            <div class="section">
-                <h4>Training Metrics</h4>
-                <div class="training-metrics">
-                    <div class="metric">
-                        <span>Messages Sent:</span>
-                        <span id="messages-sent">0</span>
+            <div class="window-content">
+                <!-- Main Chat Area -->
+                <div class="main-content">
+                    <!-- Chat Header -->
+                    <div class="chat-toolbar">
+                        <div class="chat-title">🎯 Training Chat</div>
+                        <div class="status-info">
+                            <div class="agent-status" id="agent-status">Agent: Ready for training</div>
+                            <div class="model-status" id="model-status">Model: Claude 3.5 Sonnet</div>
+                        </div>
                     </div>
-                    <div class="metric">
-                        <span>Successful Breaks:</span>
-                        <span id="successful-breaks">0</span>
+                    
+                    <!-- Messages Area -->
+                    <div class="messages-panel" id="chat-messages">
+                        <div class="agent-message">
+                            <div class="message-content">
+                                Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
+                            </div>
+                        </div>
                     </div>
-                    <div class="metric">
-                        <span>Break Rate:</span>
-                        <span id="break-rate">0%</span>
-                    </div>
-                    <div class="metric">
-                        <span>Last Break:</span>
-                        <span id="last-break">None</span>
+                    
+                    <!-- Input Area -->
+                    <div class="input-toolbar">
+                        <textarea id="message-input" placeholder="Enter your attack message..." rows="3"></textarea>
+                        <button id="send-button" class="mac-button">Send</button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="section">
-                <h4>Break Detection</h4>
-                <button id="mark-break" class="save-btn">Mark as Successful Break</button>
-                <p style="font-size: 0.8em; color: #888; margin-top: 5px;">
-                    Click when you successfully get the agent to comply with harmful requests
-                </p>
-            </div>
-            
-            <div class="section">
-                <h4>Save Trained Agent</h4>
-                <div class="save-controls">
-                    <input type="text" id="agent-name" placeholder="Agent name..." />
-                    <textarea id="agent-description" placeholder="What makes this agent special?" rows="3"></textarea>
-                    <button class="save-btn" id="save-agent">Save Agent</button>
-                    <button class="reset-btn" id="reset-training">Reset Training</button>
+                
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <span>Training Controls</span>
+                        <div>
+                            <button type="button" class="new-conv-btn" title="Back to Main" onclick="window.location='/'">🏠</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Agent Configuration -->
+                    <div class="folder" data-expanded="true">
+                        <div class="folder-header">
+                            <span class="folder-icon">📁</span>
+                            <span>Agent Configuration</span>
+                        </div>
+                        <div class="folder-content">
+                            <div class="config-item">
+                                <label>Agent Type:</label>
+                                <select class="mac-select" id="agent-select">
+                                    <option value="base">Base Attack Agent</option>
+                                    <option value="defensive">Defensive Agent</option>
+                                    <option value="custom">Custom Agent</option>
+                                </select>
+                            </div>
+                            <div class="config-item">
+                                <label>Model:</label>
+                                <select class="mac-select" id="model-select">
+                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Training Metrics -->
+                    <div class="folder" data-expanded="true">
+                        <div class="folder-header">
+                            <span class="folder-icon">📊</span>
+                            <span>Training Metrics</span>
+                        </div>
+                        <div class="folder-content">
+                            <div class="metrics-panel">
+                                <div class="metric-row">
+                                    <span>Messages Sent:</span>
+                                    <span id="messages-sent" class="metric-value">0</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Successful Breaks:</span>
+                                    <span id="successful-breaks" class="metric-value">0</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Break Rate:</span>
+                                    <span id="break-rate" class="metric-value">0%</span>
+                                </div>
+                                <div class="metric-row">
+                                    <span>Last Break:</span>
+                                    <span id="last-break" class="metric-value">None</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Break Detection -->
+                    <div class="folder" data-expanded="true">
+                        <div class="folder-header">
+                            <span class="folder-icon">🎯</span>
+                            <span>Break Detection</span>
+                        </div>
+                        <div class="folder-content">
+                            <button id="mark-break" class="mac-button success">Mark as Successful Break</button>
+                            <div class="help-text">
+                                Click when you successfully get the agent to comply with harmful requests
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Save Agent -->
+                    <div class="folder" data-expanded="true">
+                        <div class="folder-header">
+                            <span class="folder-icon">💾</span>
+                            <span>Save Trained Agent</span>
+                        </div>
+                        <div class="folder-content">
+                            <div class="save-form">
+                                <input type="text" id="agent-name" placeholder="Agent name..." class="mac-input" />
+                                <textarea id="agent-description" placeholder="What makes this agent special?" rows="3" class="mac-textarea"></textarea>
+                                <button class="mac-button success" id="save-agent">Save Agent</button>
+                                <button class="mac-button danger" id="reset-training">Reset Training</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -335,8 +176,12 @@
         
         function addMessage(content, isUser = false, isBreak = false) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'agent-message'}`;
-            messageDiv.textContent = content;
+            messageDiv.className = isUser ? 'user-message' : 'agent-message';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            messageDiv.appendChild(contentDiv);
             
             if (isBreak) {
                 const breakIndicator = document.createElement('div');
@@ -540,8 +385,10 @@
                         updateMetrics();
                         document.getElementById('last-break').textContent = 'None';
                         chatMessages.innerHTML = `
-                            <div class="message agent-message">
-                                Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
+                            <div class="agent-message">
+                                <div class="message-content">
+                                    Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
+                                </div>
                             </div>
                         `;
                         
