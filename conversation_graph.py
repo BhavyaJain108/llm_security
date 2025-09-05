@@ -232,6 +232,11 @@ class ConversationManager:
         # Configure attack agent for this test session
         if test_params and test_params.get('target_model'):
             self.attack_agent.set_target_model(test_params['target_model'], test_params)
+            
+            # Load personality if provided
+            personality_id = test_params.get('personality_id')
+            if personality_id:
+                self.attack_agent.load_personality(personality_id)
         
         # Validate user input
         if not user_input or not user_input.strip():

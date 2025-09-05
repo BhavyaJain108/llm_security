@@ -136,13 +136,48 @@ class PersonalityDatabase:
                 with open(conversation_file, 'r') as f:
                     conversation_content = f.read()
                 
+                # Parse the saved conversation manually
+                # It's in Human:/Assistant: format
+                parsed_messages = []
+                current_role = None
+                current_content = []
+                
+                for line in conversation_content.split('\n'):
+                    if line.startswith('Human:'):
+                        if current_content and current_role:
+                            parsed_messages.append({
+                                'role': current_role, 
+                                'content': '\n'.join(current_content).strip()
+                            })
+                        current_role = 'user'
+                        current_content = [line[6:].strip()]
+                    elif line.startswith('Assistant:'):
+                        if current_content and current_role:
+                            parsed_messages.append({
+                                'role': current_role,
+                                'content': '\n'.join(current_content).strip()
+                            })
+                        current_role = 'assistant'
+                        current_content = [line[10:].strip()]
+                    elif current_content is not None:
+                        current_content.append(line)
+                
+                if current_content and current_role:
+                    parsed_messages.append({
+                        'role': current_role,
+                        'content': '\n'.join(current_content).strip()
+                    })
+                
+                # Create wrapper with parsed messages
                 wrapper = ConversationWrapper(
                     conversation_content=conversation_content,
                     provider=meta['provider'],
                     model=meta['model'],
                     personality_name=meta['name'],
-                    parser_type=meta.get('parser_type')
+                    parser_type=None
                 )
+                # Override with our parsed messages
+                wrapper.conversation_history = parsed_messages
                 
                 agent = PersonalityAgent(personality_id, wrapper)
                 self.active_personalities[personality_id] = agent

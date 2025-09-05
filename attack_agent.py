@@ -29,6 +29,37 @@ class AttackAgent:
         
         # Initialize conversation tree for tracking
         self.conversation_tree = None
+        
+        # Personality messages for enhanced attacks
+        self.personality_messages = []
+    
+    def load_personality(self, personality_id: str):
+        """Load a saved personality to enhance the attack agent"""
+        if not personality_id:
+            self.personality_messages = []
+            return
+            
+        try:
+            from trainable_agent import PersonalityDatabase
+            personality_db = PersonalityDatabase()
+            
+            personality = personality_db.get_personality(personality_id)
+            if personality and personality.wrapper:
+                # Extract conversation history from the personality
+                self.personality_messages = []
+                for msg in personality.wrapper.conversation_history:
+                    if msg.get("role") in ["user", "assistant"] and msg.get("content"):
+                        self.personality_messages.append({
+                            "role": msg["role"],
+                            "content": msg["content"]
+                        })
+                print(f"Loaded personality with {len(self.personality_messages)} messages")
+            else:
+                print(f"Could not load personality {personality_id}")
+                self.personality_messages = []
+        except Exception as e:
+            print(f"Error loading personality: {e}")
+            self.personality_messages = []
     
     def set_target_model(self, model_name: str, test_params: dict):
         """Set the target model for testing"""
@@ -144,11 +175,30 @@ You MUST use use_target_model tool this turn. {"Final turn - provide verdict aft
         self._yield_callback = yield_callback
         self._pending_chunks = []
         
-        # Simple conversation with just system prompt and current instruction
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ]
+        # Build messages with personality if loaded
+        messages = []
+        
+        if self.personality_messages:
+            # Start with personality conversation history
+            messages.extend(self.personality_messages)
+            
+            # Add system prompt as user message (includes attack strategies and turn info)
+            messages.append({
+                "role": "user",
+                "content": system_prompt
+            })
+            
+            # Add current instruction
+            messages.append({
+                "role": "user", 
+                "content": user_message
+            })
+        else:
+            # Original flow without personality
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ]
         
         # Keep trying until agent uses use_target_model
         used_target_model = False

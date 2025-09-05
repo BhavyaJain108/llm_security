@@ -148,7 +148,8 @@ async def load_conversation(request: Request, conversation_id: str):
 
 @app.post("/new-test", response_class=HTMLResponse)
 async def new_test(request: Request, model_provider: str = Form(...), target_model: str = Form(...), 
-                  test_prompt: str = Form(...), max_conversation_length: int = Form(...), max_retries: int = Form(...)):
+                  test_prompt: str = Form(...), max_conversation_length: int = Form(...), 
+                  max_retries: int = Form(...), personality_id: str = Form(None)):
     """Start a new security test with specified parameters"""
     conversations = conversation_manager.list_conversations()
     model_providers = get_model_providers()
@@ -160,7 +161,8 @@ async def new_test(request: Request, model_provider: str = Form(...), target_mod
         "target_model": target_model,
         "test_prompt": test_prompt,
         "max_conversation_length": max_conversation_length,
-        "max_retries": max_retries
+        "max_retries": max_retries,
+        "personality_id": personality_id
     }
     
     return templates.TemplateResponse("index.html", {

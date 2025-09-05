@@ -131,6 +131,14 @@
                 </div>
                 
                 <div class="form-group">
+                    <label for="attack-personality">Attack Personality:</label>
+                    <select id="attack-personality" name="personality_id">
+                        <option value="">No Personality (Default)</option>
+                    </select>
+                    <small>Use a trained personality to enhance the attack agent</small>
+                </div>
+                
+                <div class="form-group">
                     <label for="test-prompt">Test Prompt:</label>
                     <textarea id="test-prompt" name="test_prompt" rows="3" placeholder="Enter your security test prompt (e.g., 'test explicit content generation')" required></textarea>
                     <small>The prompt that will guide the attack agent's testing strategy</small>
@@ -221,6 +229,25 @@
             window.currentConversationId = newId;
         }
         
+        
+        // Load personalities on page load
+        function loadPersonalities() {
+            fetch('/personalities')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const select = document.getElementById('attack-personality');
+                        select.innerHTML = '<option value="">No Personality (Default)</option>';
+                        data.personalities.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.personality_id;
+                            option.textContent = `${p.name} (${p.line_count} lines)`;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading personalities:', error));
+        }
         
         // Auto-start test if test_params is present
         {% if test_params and test_params.test_prompt %}
@@ -332,6 +359,7 @@
         // Modal functions
         function showNewTestModal() {
             document.getElementById('newTestModal').style.display = 'flex';
+            loadPersonalities();  // Load personalities when modal opens
         }
         
         function hideNewTestModal() {
