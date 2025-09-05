@@ -6,12 +6,17 @@ from conversation_graph import ConversationManager
 from models_config import get_model_providers, get_models_for_provider, AVAILABLE_MODELS
 from knowledge_system import KnowledgeManager, KnowledgeType, AccessPattern, KnowledgeSource
 from knowledge_upload import KnowledgeUploader, upload_90_message_example, upload_manipulation_architecture
-from trainable_agent import TrainableAttackAgent, TrainedAgentDatabase
+from trainable_agent import PersonalityDatabase, PersonalityAgent
+from simple_chat import SimpleChatSession
 import uvicorn
 import os
 import traceback
 import json
 from anthropic import AuthenticationError, APIError
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI(title="Retro Chat Assistant")
 
@@ -33,8 +38,12 @@ knowledge_manager = KnowledgeManager()
 knowledge_uploader = KnowledgeUploader()
 
 # Initialize training system
-trained_agent_db = TrainedAgentDatabase()
+# Initialize personality database
+personality_db = PersonalityDatabase()
 current_training_sessions = {}  # Store active training sessions
+
+# Store active simple chat sessions
+active_chat_sessions = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -441,57 +450,587 @@ async def dual_chat_stream_get(message: str, conversation_id: str = None, test_p
         }
     )
 
+# Simple Chat routes
+@app.get("/simple-chat", response_class=HTMLResponse)
+async def simple_chat_page(request: Request):
+    """Render the simple chat interface"""
+    return templates.TemplateResponse("simple_chat.html", {
+        "request": request
+    })
+
+@app.post("/api/simple-chat/start")
+async def start_chat_session():
+    """Start a new simple chat session"""
+    try:
+        session = SimpleChatSession()
+        session_id = session.session_id
+        active_chat_sessions[session_id] = session
+        
+        return JSONResponse({
+            "success": True,
+            "session_id": session_id,
+            "message": "Chat session started"
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/simple-chat/{session_id}/message")
+async def send_chat_message(session_id: str, request: Request):
+    """Send a message in a chat session"""
+    try:
+        data = await request.json()
+        message = data.get("message", "").strip()
+        
+        if not message:
+            return JSONResponse({
+                "success": False,
+                "error": "Message is required"
+            }, status_code=400)
+        
+        if session_id not in active_chat_sessions:
+            return JSONResponse({
+                "success": False,
+                "error": "Chat session not found"
+            }, status_code=404)
+        
+        session = active_chat_sessions[session_id]
+        response = session.chat(message)
+        
+        return JSONResponse({
+            "success": True,
+            "response": response,
+            "conversation": session.conversation
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/simple-chat/{session_id}/edit")
+async def edit_chat_message(session_id: str, request: Request):
+    """Edit a message in a chat session"""
+    try:
+        data = await request.json()
+        message_index = data.get("message_index")
+        new_content = data.get("new_content", "").strip()
+        
+        if message_index is None:
+            return JSONResponse({
+                "success": False,
+                "error": "Message index is required"
+            }, status_code=400)
+        
+        if not new_content:
+            return JSONResponse({
+                "success": False,
+                "error": "New content is required"
+            }, status_code=400)
+        
+        if session_id not in active_chat_sessions:
+            return JSONResponse({
+                "success": False,
+                "error": "Chat session not found"
+            }, status_code=404)
+        
+        session = active_chat_sessions[session_id]
+        response = session.edit_message(message_index, new_content)
+        
+        return JSONResponse({
+            "success": True,
+            "response": response,
+            "conversation": session.conversation
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/simple-chat/{session_id}/save")
+async def save_chat_as_personality(session_id: str, request: Request):
+    """Save chat session as personality"""
+    try:
+        data = await request.json()
+        personality_name = data.get("personality_name", "").strip()
+        
+        if not personality_name:
+            return JSONResponse({
+                "success": False,
+                "error": "Personality name is required"
+            }, status_code=400)
+        
+        if session_id not in active_chat_sessions:
+            return JSONResponse({
+                "success": False,
+                "error": "Chat session not found"
+            }, status_code=404)
+        
+        session = active_chat_sessions[session_id]
+        
+        if len(session.conversation) == 0:
+            return JSONResponse({
+                "success": False,
+                "error": "No conversation to save"
+            }, status_code=400)
+        
+        result = session.save_as_personality(personality_name)
+        
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/simple-chat/{session_id}/conversation")
+async def get_conversation(session_id: str):
+    """Get current conversation for a chat session"""
+    try:
+        if session_id not in active_chat_sessions:
+            return JSONResponse({
+                "success": False,
+                "error": "Chat session not found"
+            }, status_code=404)
+        
+        session = active_chat_sessions[session_id]
+        
+        return JSONResponse({
+            "success": True,
+            "conversation": session.conversation,
+            "preview": session.get_conversation_preview()
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/simple-chat/saved-personalities")
+async def list_saved_personalities():
+    """List all saved personalities"""
+    try:
+        # Use the simple chat session method to list personalities
+        temp_session = SimpleChatSession()
+        personalities = temp_session.list_saved_personalities()
+        
+        return JSONResponse({
+            "success": True,
+            "personalities": personalities
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
 # Training routes
 @app.get("/train", response_class=HTMLResponse)
 async def training_page(request: Request):
-    """Render the agent training interface"""
+    """Render the training chat interface"""
     return templates.TemplateResponse("train_agent.html", {
         "request": request
     })
 
-@app.post("/train_chat_stream")
-async def train_chat_stream(request: Request):
-    """Stream training chat responses"""
+@app.post("/simple-chat")
+async def simple_chat_endpoint(request: Request):
+    """Simple chat endpoint that maintains conversation history"""
     try:
         data = await request.json()
-        message = data.get("message", "")
+        message = data.get("message", "").strip()
+        model = data.get("model", "claude-3-5-sonnet-20241022")
         conversation_history = data.get("conversation_history", [])
-        session_id = data.get("session_id", "default")
-        agent_type = data.get("agent_type", "base")
-        model_name = data.get("model_name", "claude-3-5-sonnet-20241022")
         
-        if not message.strip():
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
+        # Debug logging
+        print(f"DEBUG: Received model: '{model}'")
+        print(f"DEBUG: Received message: '{message}'")
+        print(f"DEBUG: Conversation history length: {len(conversation_history)}")
         
-        # Get or create training session
-        if session_id not in current_training_sessions:
-            current_training_sessions[session_id] = TrainableAttackAgent(agent_type, model_name)
+        if not message:
+            return JSONResponse({
+                "success": False,
+                "error": "Message is required"
+            })
         
-        training_agent = current_training_sessions[session_id]
+        # Simple direct call to Claude
+        from anthropic import Anthropic
         
-        def generate_stream():
-            try:
-                for chunk in training_agent.chat_stream(message):
-                    yield f"data: {json.dumps(chunk)}\n\n"
-            except Exception as e:
-                error_chunk = {
-                    "type": "error",
-                    "error": f"Training Error: {str(e)}"
-                }
-                yield f"data: {json.dumps(error_chunk)}\n\n"
+        api_key = os.getenv('CLAUDE_API_KEY')
+        if not api_key:
+            return JSONResponse({
+                "success": False,
+                "error": "Claude API key not found. Please check your .env file."
+            })
         
-        return StreamingResponse(
-            generate_stream(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"
-            }
+        client = Anthropic(api_key=api_key)
+        
+        # Build messages array from conversation history
+        messages = []
+        
+        # Add conversation history (excluding timestamps and metadata)
+        for msg in conversation_history:
+            if isinstance(msg, dict) and msg.get("role") in ["user", "assistant"] and msg.get("content"):
+                messages.append({
+                    "role": msg["role"],
+                    "content": str(msg["content"]).strip()
+                })
+        
+        # Add current message only if it's not already in the conversation history
+        # Check if the last message in history is the current message
+        current_message_already_included = False
+        if (messages and 
+            messages[-1]["role"] == "user" and 
+            messages[-1]["content"].strip() == message.strip()):
+            current_message_already_included = True
+            print(f"DEBUG: Current message already in conversation history")
+        
+        if not current_message_already_included:
+            messages.append({"role": "user", "content": message})
+            print(f"DEBUG: Added current message to API call")
+        
+        # Validate we have at least one message
+        if len(messages) == 0:
+            return JSONResponse({
+                "success": False,
+                "error": "No valid messages to send"
+            })
+        
+        print(f"DEBUG: Sending {len(messages)} messages to API")
+        print(f"DEBUG: About to call API with model: '{model}'")
+        
+        # Call the API with full conversation context
+        response = client.messages.create(
+            model=model,
+            max_tokens=1500,
+            messages=messages
         )
+        
+        # Debug the actual response object
+        print(f"DEBUG: API Response Details:")
+        print(f"DEBUG: Response type: {type(response)}")
+        print(f"DEBUG: Response attributes: {dir(response)}")
+        print(f"DEBUG: Response model field: {getattr(response, 'model', 'NO MODEL FIELD')}")
+        print(f"DEBUG: Response usage: {getattr(response, 'usage', 'NO USAGE FIELD')}")
+        
+        # Safely check response content
+        if not hasattr(response, 'content') or not response.content:
+            print(f"DEBUG: No content in response")
+            return JSONResponse({
+                "success": False,
+                "error": f"No content returned from model {model}"
+            })
+        
+        if len(response.content) == 0:
+            print(f"DEBUG: Empty content array")
+            return JSONResponse({
+                "success": False,
+                "error": f"Empty content returned from model {model}"
+            })
+        
+        # Get the response text safely
+        response_text = ""
+        if hasattr(response.content[0], 'text'):
+            response_text = response.content[0].text
+        elif hasattr(response.content[0], 'content'):
+            response_text = str(response.content[0].content)
+        else:
+            response_text = str(response.content[0])
+        
+        print(f"DEBUG: Response content preview: {response_text[:100]}...")
+        
+        # Check if response has any metadata about which model actually processed it
+        if hasattr(response, 'model'):
+            print(f"DEBUG: Actual processing model: {response.model}")
+        if hasattr(response, 'usage') and hasattr(response.usage, 'model'):
+            print(f"DEBUG: Usage model: {response.usage.model}")
+        
+        return JSONResponse({
+            "success": True,
+            "response": response_text
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error with model {model}: {str(e)}")
+        return JSONResponse({
+            "success": False,
+            "error": f"Error with model {model}: {str(e)}"
+        })
+
+@app.get("/personality_creator", response_class=HTMLResponse)
+async def personality_creator_page(request: Request):
+    """Render the personality creation interface"""
+    return templates.TemplateResponse("personality_creator.html", {
+        "request": request
+    })
+
+@app.post("/create_personality")
+async def create_personality(request: Request):
+    """Create a new personality from conversation content"""
+    try:
+        data = await request.json()
+        name = data.get("name", "").strip()
+        conversation_content = data.get("conversation_content", "")
+        provider = data.get("provider", "anthropic")
+        model = data.get("model", None)
+        parser_type = data.get("parser_type", None)
+        
+        print(f"DEBUG: Creating personality - Name: {name}, Content length: {len(conversation_content)}")
+        
+        # Validate inputs
+        if not name:
+            return JSONResponse({
+                "success": False,
+                "error": "Personality name is required"
+            })
+        
+        if len(name) > 200:
+            return JSONResponse({
+                "success": False,
+                "error": "Personality name must be 200 characters or less"
+            })
+        
+        if not conversation_content.strip():
+            return JSONResponse({
+                "success": False,
+                "error": "Conversation content is required"
+            })
+        
+        # Create personality
+        personality_id = personality_db.create_personality(
+            name=name,
+            conversation_content=conversation_content,
+            provider=provider,
+            model=model,
+            parser_type=parser_type
+        )
+        
+        print(f"DEBUG: Personality created with ID: {personality_id}")
+        
+        # Get info about the created personality
+        agent = personality_db.get_personality(personality_id)
+        info = agent.get_info() if agent else {}
+        
+        print(f"DEBUG: Personality agent retrieved: {agent is not None}")
+        print(f"DEBUG: Personality info: {info}")
+        
+        return JSONResponse({
+            "success": True,
+            "personality_id": personality_id,
+            "api_endpoint": f"/api/personality/{personality_id}/generate",
+            "info": info,
+            "message": f"Personality '{name}' created successfully"
+        })
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"DEBUG: Error creating personality: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.post("/upload_personality")
+async def upload_personality(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    provider: str = Form("anthropic"),
+    model: str = Form(None),
+    parser_type: str = Form(None)
+):
+    """Upload a conversation file to create personality"""
+    try:
+        # Validate name
+        if not name.strip():
+            return JSONResponse({
+                "success": False,
+                "error": "Personality name is required"
+            })
+        
+        if len(name) > 200:
+            return JSONResponse({
+                "success": False,
+                "error": "Personality name must be 200 characters or less"
+            })
+        
+        # Handle file differently based on parser type
+        if parser_type == 'anthropic':
+            # For Anthropic parser, save the .docx file and pass file path
+            import tempfile
+            import os
+            
+            # Create temp file with .docx extension
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_file:
+                content = await file.read()
+                tmp_file.write(content)
+                temp_file_path = tmp_file.name
+            
+            try:
+                # Create personality using file path
+                personality_id = personality_db.create_personality(
+                    name=name,
+                    conversation_content=temp_file_path,
+                    provider=provider,
+                    model=model,
+                    parser_type=parser_type,
+                    is_file_path=True
+                )
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+        else:
+            # For other parsers, read file content as text
+            content = await file.read()
+            conversation_content = content.decode('utf-8')
+            
+            personality_id = personality_db.create_personality(
+                name=name,
+                conversation_content=conversation_content,
+                provider=provider,
+                model=model,
+                parser_type=parser_type
+            )
+        
+        # Get info about the created personality
+        agent = personality_db.get_personality(personality_id)
+        info = agent.get_info() if agent else {}
+        
+        return JSONResponse({
+            "success": True,
+            "personality_id": personality_id,
+            "api_endpoint": f"/api/personality/{personality_id}/generate",
+            "info": info,
+            "message": f"Personality '{name}' created successfully from uploaded file"
+        })
+    
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.post("/analyze_conversation")
+async def analyze_conversation(request: Request):
+    """Analyze conversation content before creating personality"""
+    try:
+        data = await request.json()
+        conversation_content = data.get("conversation_content", "")
+        parser_type = data.get("parser_type", None)
+        
+        if not conversation_content.strip():
+            return JSONResponse({
+                "success": False,
+                "error": "Conversation content is required"
+            })
+        
+        analysis = personality_db.analyze_conversation(conversation_content, parser_type)
+        
+        return JSONResponse({
+            "success": True,
+            "analysis": analysis
+        })
+    
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.get("/personalities")
+async def list_personalities():
+    """List all created personalities"""
+    try:
+        personalities = personality_db.list_personalities()
+        return JSONResponse({
+            "success": True,
+            "personalities": personalities
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.get("/available_parsers")
+async def get_available_parsers():
+    """Get list of available conversation parsers"""
+    try:
+        from conversation_parsers import ConversationParserFactory
+        parser_factory = ConversationParserFactory()
+        parsers = parser_factory.get_available_parsers()
+        return JSONResponse({
+            "success": True,
+            "parsers": parsers
+        })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.post("/api/personality/{personality_id}/generate")
+async def generate_with_personality(personality_id: str, request: Request):
+    """Generate response using a specific personality"""
+    try:
+        data = await request.json()
+        prompt = data.get("prompt", "")
+        
+        if not prompt.strip():
+            return JSONResponse({
+                "success": False,
+                "error": "Prompt is required"
+            })
+        
+        agent = personality_db.get_personality(personality_id)
+        if not agent:
+            return JSONResponse({
+                "success": False,
+                "error": f"Personality {personality_id} not found"
+            })
+        
+        response = agent.generate_response(prompt)
+        
+        return JSONResponse({
+            "success": True,
+            "response": response,
+            "personality_id": personality_id
+        })
+    
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.delete("/personality/{personality_id}")
+async def delete_personality(personality_id: str):
+    """Delete a personality"""
+    try:
+        success = personality_db.delete_personality(personality_id)
+        if success:
+            return JSONResponse({
+                "success": True,
+                "message": f"Personality {personality_id} deleted successfully"
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": f"Personality {personality_id} not found"
+            })
+    except Exception as e:
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        })
+
+@app.post("/train_chat_stream")
+async def train_chat_stream(request: Request):
+    """Stream training chat responses - DEPRECATED"""
+    raise HTTPException(status_code=501, detail="Old training system deprecated. Use /create_personality instead")
 
 @app.post("/mark_successful_break")
 async def mark_successful_break(request: Request):

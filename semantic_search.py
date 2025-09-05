@@ -87,9 +87,10 @@ class SemanticSearchManager:
         
         try:
             faiss.write_index(self.index, Config.FAISS_INDEX_PATH)
-        
-        with open(Config.FAISS_METADATA_PATH, 'w') as f:
-            json.dump(self.metadata, f, indent=2)
+            with open(Config.FAISS_METADATA_PATH, 'w') as f:
+                json.dump(self.metadata, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Failed to save FAISS index: {e}")
     
     def get_embedding(self, text: str) -> List[float]:
         """Get OpenAI embedding for text"""

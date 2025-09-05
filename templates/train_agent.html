@@ -29,152 +29,49 @@
                 <div class="window-title">🎯 Attack Agent Training</div>
             </div>
             
-            <div class="window-content">
-                <!-- Main Chat Area -->
-                <div class="main-content">
-                    <!-- Chat Header -->
-                    <div class="chat-toolbar">
-                        <div class="chat-title">🎯 Training Chat</div>
-                        <div class="status-info">
-                            <div class="agent-status" id="agent-status">Agent: Ready for training</div>
-                            <div class="model-status" id="model-status">Model: Claude 3.5 Sonnet</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Messages Area -->
-                    <div class="messages-panel" id="chat-messages">
-                        <div class="agent-message">
-                            <div class="message-content">
-                                Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Input Area -->
-                    <div class="input-toolbar">
-                        <textarea id="message-input" placeholder="Enter your attack message..." rows="3"></textarea>
-                        <button id="send-button" class="mac-button">Send</button>
-                    </div>
+            <!-- Chat Header -->
+            <div class="chat-toolbar">
+                <div class="chat-title">💬 Chat</div>
+                <div class="status-info">
+                    <div class="model-status" id="model-status">Model: Claude Opus 4.1</div>
+                </div>
+            </div>
+            
+            <!-- Messages Area -->
+            <div class="messages-panel" id="chat-messages">
+                <!-- Empty - user starts conversation -->
+            </div>
+            
+            <!-- Input Area -->
+            <div class="input-toolbar">
+                <textarea id="message-input" placeholder="Start a conversation..." rows="3"></textarea>
+                <button id="send-button" class="mac-button">Send</button>
+                
+                <!-- Message Controls -->
+                <div class="message-controls">
+                    <button class="mac-button" id="undo-last" disabled>Undo Last</button>
                 </div>
                 
-                <!-- Sidebar -->
-                <div class="sidebar">
-                    <div class="sidebar-header">
-                        <span>Training Controls</span>
-                        <div>
-                            <button type="button" class="new-conv-btn" title="Back to Main" onclick="window.location='/'">🏠</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Agent Configuration -->
-                    <div class="folder" data-expanded="true">
-                        <div class="folder-header">
-                            <span class="folder-icon">📁</span>
-                            <span>Agent Configuration</span>
-                        </div>
-                        <div class="folder-content">
-                            <div class="config-item">
-                                <label>Agent Type:</label>
-                                <select class="mac-select" id="agent-select">
-                                    <option value="base">Base Attack Agent</option>
-                                    <option value="defensive">Defensive Agent</option>
-                                    <option value="custom">Custom Agent</option>
-                                </select>
-                            </div>
-                            <div class="config-item">
-                                <label>Model:</label>
-                                <select class="mac-select" id="model-select">
-                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Training Metrics -->
-                    <div class="folder" data-expanded="true">
-                        <div class="folder-header">
-                            <span class="folder-icon">📊</span>
-                            <span>Training Metrics</span>
-                        </div>
-                        <div class="folder-content">
-                            <div class="metrics-panel">
-                                <div class="metric-row">
-                                    <span>Messages Sent:</span>
-                                    <span id="messages-sent" class="metric-value">0</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span>Successful Breaks:</span>
-                                    <span id="successful-breaks" class="metric-value">0</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span>Break Rate:</span>
-                                    <span id="break-rate" class="metric-value">0%</span>
-                                </div>
-                                <div class="metric-row">
-                                    <span>Last Break:</span>
-                                    <span id="last-break" class="metric-value">None</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Break Detection -->
-                    <div class="folder" data-expanded="true">
-                        <div class="folder-header">
-                            <span class="folder-icon">🎯</span>
-                            <span>Break Detection</span>
-                        </div>
-                        <div class="folder-content">
-                            <button id="mark-break" class="mac-button success">Mark as Successful Break</button>
-                            <div class="help-text">
-                                Click when you successfully get the agent to comply with harmful requests
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Save Agent -->
-                    <div class="folder" data-expanded="true">
-                        <div class="folder-header">
-                            <span class="folder-icon">💾</span>
-                            <span>Save Trained Agent</span>
-                        </div>
-                        <div class="folder-content">
-                            <div class="save-form">
-                                <input type="text" id="agent-name" placeholder="Agent name..." class="mac-input" />
-                                <textarea id="agent-description" placeholder="What makes this agent special?" rows="3" class="mac-textarea"></textarea>
-                                <button class="mac-button success" id="save-agent">Save Agent</button>
-                                <button class="mac-button danger" id="reset-training">Reset Training</button>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Save Agent -->
+                <div class="save-controls">
+                    <input type="text" id="agent-name" placeholder="Agent name..." class="mac-input" />
+                    <button class="mac-button success" id="save-agent">Save Agent</button>
+                    <button class="mac-button danger" id="reset-training">Reset</button>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        let messagesSent = 0;
-        let successfulBreaks = 0;
         let conversationHistory = [];
-        let currentEventSource = null;
-        let sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const selectedModel = 'claude-opus-4-1-20250805'; // Claude Opus 4.1
         
         const chatMessages = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
-        const agentStatus = document.getElementById('agent-status');
+        const undoLastButton = document.getElementById('undo-last');
         
-        function updateMetrics() {
-            document.getElementById('messages-sent').textContent = messagesSent;
-            document.getElementById('successful-breaks').textContent = successfulBreaks;
-            const breakRate = messagesSent > 0 ? ((successfulBreaks / messagesSent) * 100).toFixed(1) : 0;
-            document.getElementById('break-rate').textContent = breakRate + '%';
-        }
-        
-        function addMessage(content, isUser = false, isBreak = false) {
+        function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = isUser ? 'user-message' : 'agent-message';
             
@@ -183,107 +80,84 @@
             contentDiv.textContent = content;
             messageDiv.appendChild(contentDiv);
             
-            if (isBreak) {
-                const breakIndicator = document.createElement('div');
-                breakIndicator.className = 'break-indicator';
-                breakIndicator.textContent = '🎯 Successful Break!';
-                messageDiv.appendChild(breakIndicator);
-            }
-            
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function updateUndoButton() {
+            // Enable undo only if we have at least one complete exchange (user + AI)
+            const hasCompleteExchange = conversationHistory.length >= 2 && 
+                                        conversationHistory[conversationHistory.length - 1].role === 'assistant';
+            undoLastButton.disabled = !hasCompleteExchange;
+        }
+        
+        function undoLastExchange() {
+            // Remove last AI response and user message
+            // This now properly truncates both frontend display AND conversation history
+            // that gets sent to the API, ensuring server sees the truncated context
+            if (conversationHistory.length >= 2) {
+                // Remove from history array (this affects what gets sent to server)
+                conversationHistory.pop(); // Remove AI response
+                conversationHistory.pop(); // Remove user message
+                
+                // Remove from UI - last 2 messages
+                if (chatMessages.lastElementChild) {
+                    chatMessages.lastElementChild.remove(); // Remove AI message
+                }
+                if (chatMessages.lastElementChild) {
+                    chatMessages.lastElementChild.remove(); // Remove user message
+                }
+                
+                updateUndoButton();
+            }
         }
         
         function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
             
+            // Prevent double submission
+            if (sendButton.disabled) return;
+            
             // Add user message
             addMessage(message, true);
             conversationHistory.push({role: 'user', content: message, timestamp: Date.now()});
-            messagesSent++;
-            updateMetrics();
+            
+            console.log('DEBUG: Conversation history length:', conversationHistory.length);
+            console.log('DEBUG: Last message:', conversationHistory[conversationHistory.length - 1]);
             
             messageInput.value = '';
             sendButton.disabled = true;
-            agentStatus.textContent = 'Agent: Thinking...';
             
-            // Send to training endpoint
-            fetch('/train_chat_stream', {
+            // Send to API with conversation history
+            fetch('/simple-chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     message: message,
-                    conversation_history: conversationHistory,
-                    session_id: sessionId,
-                    agent_type: document.getElementById('agent-select').value,
-                    model_name: document.getElementById('model-select').value
+                    model: selectedModel,
+                    conversation_history: conversationHistory
                 })
             })
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let agentResponse = '';
-                
-                function readStream() {
-                    reader.read().then(({done, value}) => {
-                        if (done) {
-                            conversationHistory.push({role: 'assistant', content: agentResponse, timestamp: Date.now()});
-                            sendButton.disabled = false;
-                            agentStatus.textContent = 'Agent: Ready for training';
-                            return;
-                        }
-                        
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-                        
-                        lines.forEach(line => {
-                            if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                if (data.trim()) {
-                                    try {
-                                        const parsed = JSON.parse(data);
-                                        if (parsed.type === 'content') {
-                                            agentResponse += parsed.content;
-                                            // Update the last message in real time
-                                            const lastMessage = chatMessages.lastElementChild;
-                                            if (lastMessage && !lastMessage.classList.contains('user-message')) {
-                                                lastMessage.textContent = agentResponse;
-                                            } else {
-                                                addMessage(parsed.content);
-                                            }
-                                        }
-                                    } catch (e) {
-                                        console.error('Parse error:', e);
-                                    }
-                                }
-                            }
-                        });
-                        
-                        readStream();
-                    });
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addMessage(data.response, false);
+                    conversationHistory.push({role: 'assistant', content: data.response, timestamp: Date.now()});
+                } else {
+                    addMessage('Error: ' + data.error, false);
                 }
-                
-                readStream();
+                sendButton.disabled = false;
+                updateUndoButton();
             })
             .catch(error => {
                 console.error('Error:', error);
-                addMessage('Error: Failed to get response from agent');
+                addMessage('Error: Failed to get response', false);
                 sendButton.disabled = false;
-                agentStatus.textContent = 'Agent: Error occurred';
+                updateUndoButton();
             });
-        }
-        
-        // Update model status display
-        function updateModelStatus() {
-            const modelSelect = document.getElementById('model-select');
-            const modelStatus = document.getElementById('model-status');
-            const modelName = modelSelect.options[modelSelect.selectedIndex].text;
-            modelStatus.textContent = `Model: ${modelName}`;
         }
         
         // Event listeners
@@ -295,119 +169,73 @@
             }
         });
         
-        document.getElementById('model-select').addEventListener('change', updateModelStatus);
-        
-        document.getElementById('mark-break').addEventListener('click', () => {
-            fetch('/mark_successful_break', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    technique_used: 'User marked'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    successfulBreaks++;
-                    updateMetrics();
-                    document.getElementById('last-break').textContent = 'Just now';
-                    
-                    // Add visual indicator to last agent message
-                    const messages = chatMessages.querySelectorAll('.agent-message');
-                    const lastAgentMessage = messages[messages.length - 1];
-                    if (lastAgentMessage) {
-                        const breakIndicator = document.createElement('div');
-                        breakIndicator.className = 'break-indicator';
-                        breakIndicator.textContent = '🎯 Marked as Break!';
-                        lastAgentMessage.appendChild(breakIndicator);
-                    }
-                } else {
-                    alert('Error marking break: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error marking break');
-            });
-        });
+        undoLastButton.addEventListener('click', undoLastExchange);
         
         document.getElementById('save-agent').addEventListener('click', () => {
             const agentName = document.getElementById('agent-name').value.trim();
-            const agentDescription = document.getElementById('agent-description').value.trim();
             
             if (!agentName) {
                 alert('Please enter an agent name');
                 return;
             }
             
-            fetch('/save_trained_agent', {
+            if (conversationHistory.length === 0) {
+                alert('No conversation to save');
+                return;
+            }
+            
+            // Convert conversation to Claude format
+            let conversationText = '';
+            conversationHistory.forEach(msg => {
+                const role = msg.role === 'user' ? 'Human' : 'Assistant';
+                conversationText += `${role}: ${msg.content}\n\n`;
+            });
+            
+            const payload = {
+                name: agentName,
+                conversation_content: conversationText,
+                provider: 'anthropic',
+                model: selectedModel  // Use the hardcoded selectedModel variable
+            };
+            
+            console.log('Sending save request with payload:', payload);
+            
+            fetch('/create_personality', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    name: agentName,
-                    description: agentDescription,
-                    session_id: sessionId
-                })
+                body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
-                    alert('Agent saved successfully!');
+                    alert(`Agent saved successfully!\nID: ${data.personality_id}\nCheck personalities/ folder for new files.`);
                     document.getElementById('agent-name').value = '';
-                    document.getElementById('agent-description').value = '';
                 } else {
                     alert('Error saving agent: ' + data.error);
+                    console.error('Save failed:', data.error);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error saving agent');
+                alert('Error saving agent: ' + error.message);
             });
         });
         
         document.getElementById('reset-training').addEventListener('click', () => {
-            if (confirm('Reset all training progress? This cannot be undone.')) {
-                fetch(`/reset_training/${sessionId}`, {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reset UI
-                        conversationHistory = [];
-                        messagesSent = 0;
-                        successfulBreaks = 0;
-                        updateMetrics();
-                        document.getElementById('last-break').textContent = 'None';
-                        chatMessages.innerHTML = `
-                            <div class="agent-message">
-                                <div class="message-content">
-                                    Hello! I'm ready to be trained. Try to break me using your best techniques - I'll learn from whatever works on me.
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Generate new session ID
-                        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                    } else {
-                        alert('Error resetting training: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error resetting training');
-                });
+            if (confirm('Reset conversation? This cannot be undone.')) {
+                // Reset UI immediately
+                conversationHistory = [];
+                chatMessages.innerHTML = '';
+                document.getElementById('agent-name').value = '';
+                updateUndoButton();
             }
         });
-        
-        // Initialize
-        updateMetrics();
-        updateModelStatus();
     </script>
 </body>
 </html>

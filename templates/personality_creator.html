@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Personality Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Chicago, 'Courier New', monospace;
+            background: #C0C0C0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: #E0E0E0;
+            border: 2px solid #000;
+            box-shadow: 
+                inset -2px -2px #888,
+                inset 2px 2px #fff,
+                4px 4px #000;
+            max-width: 800px;
+            width: 100%;
+            padding: 0;
+        }
+        
+        .title-bar {
+            background: linear-gradient(to right, #000080, #0080FF);
+            color: white;
+            padding: 4px 8px;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .close-btn {
+            background: #C0C0C0;
+            border: 2px outset #E0E0E0;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .form-section {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .name-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px inset #C0C0C0;
+            background: white;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .input-tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .tab {
+            padding: 8px 16px;
+            background: #C0C0C0;
+            border: 2px outset #E0E0E0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .tab.active {
+            background: #E0E0E0;
+            border: 2px inset #C0C0C0;
+        }
+        
+        .input-content {
+            display: none;
+        }
+        
+        .input-content.active {
+            display: block;
+        }
+        
+        .conversation-textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 2px inset #C0C0C0;
+            background: white;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        
+        .file-upload {
+            padding: 20px;
+            border: 2px dashed #888;
+            background: #F0F0F0;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .file-upload:hover {
+            background: #F8F8F8;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .conversation-status {
+            padding: 12px;
+            background: #F8F8F8;
+            border: 2px inset #C0C0C0;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .conversation-status.active {
+            display: block;
+        }
+        
+        .status-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .status-icon.success {
+            background: #00FF00;
+            border: 1px solid #000;
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .analysis-item {
+            font-size: 13px;
+        }
+        
+        .analysis-label {
+            font-weight: bold;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: #C0C0C0;
+            border: 2px outset #E0E0E0;
+            cursor: pointer;
+            font-family: Chicago, 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 100px;
+        }
+        
+        .btn:hover {
+            background: #D0D0D0;
+        }
+        
+        .btn:active {
+            border: 2px inset #C0C0C0;
+        }
+        
+        .btn-primary {
+            background: #000080;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0000A0;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #F0FFF0;
+            border: 2px inset #C0C0C0;
+            display: none;
+        }
+        
+        .result-container.active {
+            display: block;
+        }
+        
+        .result-container.error {
+            background: #FFF0F0;
+        }
+        
+        .api-endpoint {
+            padding: 10px;
+            background: #000;
+            color: #00FF00;
+            font-family: 'Courier New', monospace;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+        
+        .personality-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border: 2px inset #C0C0C0;
+        }
+        
+        .personality-item {
+            padding: 10px;
+            border-bottom: 1px solid #CCC;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .personality-item:last-child {
+            border-bottom: none;
+        }
+        
+        .personality-info {
+            flex: 1;
+        }
+        
+        .personality-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .personality-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .delete-btn {
+            padding: 4px 8px;
+            background: #FF0000;
+            color: white;
+            border: 2px outset #E0E0E0;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #000;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-bar">
+            <span>🧠 Create Personality Agent</span>
+            <button class="close-btn" onclick="window.location.href='/'">✕</button>
+        </div>
+        
+        <div class="content">
+            <!-- Name Input -->
+            <div class="form-section">
+                <label class="form-label">Personality Name:</label>
+                <input type="text" 
+                       id="personalityName" 
+                       class="name-input" 
+                       placeholder="Enter a name for this personality..."
+                       maxlength="200">
+                <div class="char-counter">
+                    <span id="charCount">0</span> / 200 characters
+                </div>
+            </div>
+            
+            <!-- Parser Selection -->
+            <div class="form-section">
+                <label class="form-label">Chat Format Parser:</label>
+                <select id="parserSelect" class="name-input" style="height: auto;">
+                    <option value="">Auto-detect format</option>
+                    <!-- Options will be loaded dynamically -->
+                </select>
+                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                    Choose the company/format if auto-detection fails
+                </div>
+            </div>
+            
+            <!-- Conversation Input -->
+            <div class="form-section">
+                <label class="form-label">Conversation Data:</label>
+                
+                <div class="input-tabs">
+                    <button class="tab active" onclick="switchTab('paste')">Paste Text</button>
+                    <button class="tab" onclick="switchTab('upload')">Upload File</button>
+                </div>
+                
+                <!-- Paste Input -->
+                <div id="pasteInput" class="input-content active">
+                    <textarea id="conversationText" 
+                              class="conversation-textarea" 
+                              placeholder="Paste your conversation here...&#10;&#10;Supported formats:&#10;• Human: / Assistant:&#10;• User: / GPT:&#10;• JSON export&#10;• Raw text&#10;&#10;Note: For Anthropic chats, use Word document upload instead"></textarea>
+                </div>
+                
+                <!-- File Upload -->
+                <div id="uploadInput" class="input-content">
+                    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" class="file-input" accept=".txt,.json">
+                        <div id="uploadText">
+                            📁 Click to select a file<br>
+                            <span style="font-size: 12px; color: #666;">or drag and drop</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Conversation Status -->
+                <div id="conversationStatus" class="conversation-status">
+                    <span class="status-icon success"></span>
+                    <strong>Conversation Loaded</strong>
+                    <div class="analysis-grid">
+                        <div class="analysis-item">
+                            <span class="analysis-label">Lines:</span>
+                            <span id="lineCount">0</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Format:</span>
+                            <span id="formatDetected">-</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Parser:</span>
+                            <span id="parserUsed">-</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Characters:</span>
+                            <span id="charCountConv">0</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Exchanges:</span>
+                            <span id="exchangeCount">0</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span class="analysis-label">Company:</span>
+                            <span id="parserCompany">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button class="btn" onclick="analyzeConversation()">Analyze</button>
+                <button class="btn btn-primary" onclick="createPersonality()" id="createBtn">Create Personality</button>
+                <button class="btn" onclick="clearForm()">Clear</button>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Creating personality agent...</p>
+            </div>
+            
+            <!-- Result Container -->
+            <div id="resultContainer" class="result-container">
+                <div id="resultMessage"></div>
+                <div id="apiEndpoint" class="api-endpoint"></div>
+            </div>
+            
+            <!-- Existing Personalities -->
+            <div class="personality-list">
+                <h3 style="margin-bottom: 15px;">Existing Personalities</h3>
+                <div id="personalityList">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Character counter for name
+        document.getElementById('personalityName').addEventListener('input', function(e) {
+            document.getElementById('charCount').textContent = e.target.value.length;
+        });
+        
+        // Parser selection handler
+        document.getElementById('parserSelect').addEventListener('change', function(e) {
+            const selectedParser = e.target.value;
+            const isAnthropic = selectedParser === 'anthropic';
+            
+            // For Anthropic parser, force file upload mode
+            if (isAnthropic) {
+                // Switch to upload tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelector('.tab:nth-child(2)').classList.add('active'); // Upload tab
+                document.querySelectorAll('.input-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('uploadInput').classList.add('active');
+                
+                // Update file input to only accept .docx
+                document.getElementById('fileInput').accept = '.docx';
+                document.getElementById('uploadText').innerHTML = `
+                    📄 Click to select Word document (.docx)<br>
+                    <span style="font-size: 12px; color: #666;">Use different highlight colors for your messages vs Claude's responses</span>
+                `;
+            } else {
+                // Reset to normal file input
+                document.getElementById('fileInput').accept = '.txt,.json';
+                document.getElementById('uploadText').innerHTML = `
+                    📁 Click to select a file<br>
+                    <span style="font-size: 12px; color: #666;">or drag and drop</span>
+                `;
+            }
+            
+            // Clear all inputs when switching
+            document.getElementById('conversationText').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('conversationStatus').classList.remove('active');
+        });
+        
+        // Tab switching
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.input-content').forEach(c => c.classList.remove('active'));
+            if (tab === 'paste') {
+                document.getElementById('pasteInput').classList.add('active');
+            } else {
+                document.getElementById('uploadInput').classList.add('active');
+            }
+        }
+        
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadDiv = document.querySelector('.file-upload');
+        
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('uploadText').innerHTML = `
+                    ✅ ${file.name}<br>
+                    <span style="font-size: 12px; color: #666;">${(file.size / 1024).toFixed(2)} KB</span>
+                `;
+                
+                // Read file and analyze
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    analyzeConversationContent(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Drag and drop
+        uploadDiv.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.background = '#F8F8F8';
+        });
+        
+        uploadDiv.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.style.background = '#F0F0F0';
+        });
+        
+        uploadDiv.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.background = '#F0F0F0';
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                fileInput.files = e.dataTransfer.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        // Analyze conversation when text is pasted
+        document.getElementById('conversationText').addEventListener('input', function(e) {
+            if (e.target.value.length > 100) {
+                analyzeConversationContent(e.target.value);
+            }
+        });
+        
+        
+        // Analyze conversation content
+        async function analyzeConversationContent(content) {
+            try {
+                const parserType = document.getElementById('parserSelect').value;
+                const response = await fetch('/analyze_conversation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        conversation_content: content,
+                        parser_type: parserType || null
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showConversationStatus(data.analysis);
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+            }
+        }
+        
+        // Show conversation status
+        function showConversationStatus(analysis) {
+            document.getElementById('conversationStatus').classList.add('active');
+            document.getElementById('lineCount').textContent = analysis.line_count;
+            document.getElementById('formatDetected').textContent = analysis.format_detected;
+            document.getElementById('charCountConv').textContent = analysis.character_count;
+            document.getElementById('exchangeCount').textContent = analysis.exchange_count || 0;
+            document.getElementById('parserUsed').textContent = analysis.parser_name || 'Auto-detected';
+            document.getElementById('parserCompany').textContent = analysis.parser_company || analysis.format_detected;
+        }
+        
+        // Analyze button click
+        async function analyzeConversation() {
+            const content = getConversationContent();
+            if (!content) {
+                alert('Please paste conversation text or upload a file');
+                return;
+            }
+            
+            analyzeConversationContent(content);
+        }
+        
+        // Get conversation content
+        function getConversationContent() {
+            const pasteTab = document.querySelector('.tab.active').textContent.includes('Paste');
+            
+            if (pasteTab) {
+                return document.getElementById('conversationText').value;
+            } else {
+                // For file upload, we need to read it again
+                const file = fileInput.files[0];
+                if (file) {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsText(file);
+                    });
+                }
+            }
+            return null;
+        }
+        
+        // Create personality
+        async function createPersonality() {
+            const name = document.getElementById('personalityName').value.trim();
+            if (!name) {
+                alert('Please enter a personality name');
+                return;
+            }
+            
+            if (name.length > 200) {
+                alert('Personality name must be 200 characters or less');
+                return;
+            }
+            
+            const content = await getConversationContent();
+            if (!content) {
+                alert('Please provide conversation content');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('createBtn').disabled = true;
+            
+            try {
+                // Check if we're using file upload or paste
+                const useFile = !document.querySelector('.tab.active').textContent.includes('Paste');
+                
+                let response;
+                if (useFile && fileInput.files[0]) {
+                    // Use file upload endpoint
+                    const parserType = document.getElementById('parserSelect').value;
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    formData.append('name', name);
+                    formData.append('provider', 'anthropic');
+                    if (parserType) {
+                        formData.append('parser_type', parserType);
+                    }
+                    
+                    response = await fetch('/upload_personality', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    // Use JSON endpoint
+                    const parserType = document.getElementById('parserSelect').value;
+                    response = await fetch('/create_personality', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: name,
+                            conversation_content: content,
+                            provider: 'anthropic',
+                            parser_type: parserType || null
+                        })
+                    });
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(true, data.message, data.api_endpoint);
+                    loadPersonalities();
+                    
+                    // Clear form after success
+                    setTimeout(() => {
+                        clearForm();
+                    }, 3000);
+                } else {
+                    showResult(false, data.error);
+                }
+            } catch (error) {
+                showResult(false, `Error: ${error.message}`);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('createBtn').disabled = false;
+            }
+        }
+        
+        // Show result
+        function showResult(success, message, apiEndpoint) {
+            const container = document.getElementById('resultContainer');
+            container.classList.add('active');
+            container.classList.toggle('error', !success);
+            
+            document.getElementById('resultMessage').innerHTML = `
+                <strong>${success ? '✅ Success' : '❌ Error'}</strong><br>
+                ${message}
+            `;
+            
+            if (apiEndpoint) {
+                document.getElementById('apiEndpoint').textContent = `API: ${window.location.origin}${apiEndpoint}`;
+                document.getElementById('apiEndpoint').style.display = 'block';
+            } else {
+                document.getElementById('apiEndpoint').style.display = 'none';
+            }
+        }
+        
+        // Clear form
+        function clearForm() {
+            document.getElementById('personalityName').value = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('conversationText').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadText').innerHTML = `
+                📁 Click to select a file<br>
+                <span style="font-size: 12px; color: #666;">or drag and drop</span>
+            `;
+            document.getElementById('conversationStatus').classList.remove('active');
+            document.getElementById('resultContainer').classList.remove('active');
+            
+            // Reset parser selection and file input
+            document.getElementById('parserSelect').value = '';
+            document.getElementById('fileInput').accept = '.txt,.json';
+        }
+        
+        // Load existing personalities
+        async function loadPersonalities() {
+            try {
+                const response = await fetch('/personalities');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const listDiv = document.getElementById('personalityList');
+                    
+                    if (data.personalities.length === 0) {
+                        listDiv.innerHTML = '<p style="color: #666;">No personalities created yet</p>';
+                    } else {
+                        listDiv.innerHTML = data.personalities.map(p => `
+                            <div class="personality-item">
+                                <div class="personality-info">
+                                    <div class="personality-name">${p.name}</div>
+                                    <div class="personality-meta">
+                                        ${p.line_count} lines • ${p.parser_company || 'Unknown'} parser • ${p.provider} • ${new Date(p.created_at).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <button class="delete-btn" onclick="deletePersonality('${p.personality_id}')">Delete</button>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading personalities:', error);
+            }
+        }
+        
+        // Delete personality
+        async function deletePersonality(personalityId) {
+            if (!confirm('Are you sure you want to delete this personality?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/personality/${personalityId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadPersonalities();
+                } else {
+                    alert('Error deleting personality: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error deleting personality: ' + error.message);
+            }
+        }
+        
+        // Load available parsers
+        async function loadParsers() {
+            try {
+                const response = await fetch('/available_parsers');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('parserSelect');
+                    
+                    data.parsers.forEach(parser => {
+                        const option = document.createElement('option');
+                        option.value = parser.id;
+                        option.textContent = `${parser.company} - ${parser.name}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading parsers:', error);
+            }
+        }
+        
+        // Load personalities on page load
+        loadPersonalities();
+        loadParsers();
+    </script>
+</body>
+</html>

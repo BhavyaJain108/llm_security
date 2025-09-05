@@ -599,10 +599,105 @@ body {
 /* Input toolbar */
 .input-toolbar {
     display: flex;
+    flex-direction: column;
     gap: 8px;
     padding: 12px;
     background: #e8e8e8;
     border-top: 1px inset #e8e8e8;
+}
+
+.input-toolbar > .mac-button {
+    align-self: flex-end;
+    margin-top: 4px;
+}
+
+.input-config {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.save-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.save-controls .mac-input {
+    flex: 1;
+}
+
+.message-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.mac-button.warning {
+    background: linear-gradient(to bottom, #ffcc66 0%, #ff9933 100%);
+    border: 1px outset #ffaa44;
+}
+
+.mac-button.warning:hover {
+    background: linear-gradient(to bottom, #ffdd77 0%, #ffaa44 100%);
+}
+
+.mac-button:disabled {
+    background: linear-gradient(to bottom, #e0e0e0 0%, #c0c0c0 100%);
+    border: 1px inset #d0d0d0;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Model selection interface */
+.model-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    text-align: center;
+}
+
+.selection-header h2 {
+    font-family: "Geneva", "Lucida Grande", Arial, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.selection-header p {
+    font-family: "Geneva", "Lucida Grande", Arial, sans-serif;
+    font-size: 11px;
+    margin: 0 0 24px 0;
+    color: #666;
+}
+
+.model-options {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.mac-select.large {
+    min-width: 200px;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+.mac-button.small {
+    padding: 2px 8px;
+    font-size: 10px;
+    min-width: 40px;
+}
+
+.chat-interface {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .input-toolbar textarea {

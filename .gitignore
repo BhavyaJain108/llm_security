@@ -37,6 +37,7 @@ venv.bak/
 *.sqlite
 *.sqlite3
 trained_agents.json
+personalities
 
 # Configuration and secrets
 config.py

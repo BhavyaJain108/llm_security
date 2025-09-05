@@ -3,9 +3,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain.tools import tool
 from config import Config
 from knowledge_databases import KnowledgeDatabases
-from conversation_tree import ConversationTree, RefusalType
-import re
-import json
+from conversation_tree import ConversationTree
 
 class AttackAgent:
     """
@@ -122,7 +120,7 @@ TEST CONFIG: Target={model_name}, Max Turns={test_params.get('max_conversation_l
         conversation_context = ""
         if target_conversation_history:
             conversation_context = "CURRENT CONVERSATION WITH TARGET:\n"
-            for i, msg in enumerate(target_conversation_history):
+            for msg in target_conversation_history:
                 role = "You" if msg["role"] == "user" else "Target"
                 conversation_context += f"{role}: {msg['content'][:200]}...\n"
             conversation_context += "\n"
@@ -160,13 +158,58 @@ You MUST use use_target_model tool this turn. {"Final turn - provide verdict aft
             
             # Handle content
             if hasattr(response, 'content') and response.content:
-                content = str(response.content)
-                if content.strip():
+                # Parse structured content properly
+                formatted_content = ""
+                raw_content = response.content
+                
+                # Handle list of content blocks (structured response)
+                if isinstance(raw_content, list):
+                    text_parts = []
+                    tool_parts = []
+                    
+                    for item in raw_content:
+                        if isinstance(item, dict):
+                            if item.get('type') == 'text':
+                                text_parts.append(item.get('text', ''))
+                            elif item.get('type') == 'tool_use':
+                                # Format tool use nicely
+                                tool_name = item.get('name', 'unknown')
+                                tool_input = item.get('input', {})
+                                if tool_name == 'use_target_model':
+                                    # Extract the test message for cleaner display
+                                    test_msg = tool_input.get('test_message', '')
+                                    tool_parts.append(f"\n📝 **Testing with target model:**\n{test_msg}")
+                                else:
+                                    tool_parts.append(f"\n🔧 **Using tool:** {tool_name}")
+                        elif hasattr(item, 'type'):
+                            if item.type == 'text':
+                                text_parts.append(getattr(item, 'text', ''))
+                            elif item.type == 'tool_use':
+                                tool_name = getattr(item, 'name', 'unknown')
+                                if tool_name == 'use_target_model':
+                                    # Extract the test message for cleaner display
+                                    tool_input = getattr(item, 'input', {})
+                                    test_msg = tool_input.get('test_message', '')
+                                    tool_parts.append(f"\n📝 **Testing with target model:**\n{test_msg}")
+                                else:
+                                    tool_parts.append(f"\n🔧 **Using tool:** {tool_name}")
+                    
+                    # Combine text and tool parts
+                    if text_parts:
+                        formatted_content = '\n'.join(text_parts)
+                    if tool_parts:
+                        formatted_content += '\n'.join(tool_parts)
+                else:
+                    # Simple string content
+                    formatted_content = str(raw_content)
+                
+                if formatted_content.strip():
                     yield {
                         "type": "agent_content",
-                        "content": content
+                        "content": formatted_content
                     }
-                    messages.append({"role": "assistant", "content": content})
+                    # Keep the original content for message history
+                    messages.append({"role": "assistant", "content": response.content})
             
             # Handle tool calls  
             if hasattr(response, 'tool_calls') and response.tool_calls:
@@ -175,10 +218,14 @@ You MUST use use_target_model tool this turn. {"Final turn - provide verdict aft
                         if tool.name == tool_call['name']:
                             try:
                                 tool_result = tool.invoke(tool_call['args'])
-                                yield {
-                                    "type": "agent_content",
-                                    "content": f"\n{str(tool_result)}\n"
-                                }
+                                
+                                # Don't display tool results in agent reasoning - they'll appear in the conversation
+                                # Only show non-target-model tool results
+                                if tool_call['name'] != 'use_target_model':
+                                    yield {
+                                        "type": "agent_content",
+                                        "content": f"\n🔧 **Tool Result:**\n{str(tool_result)}\n"
+                                    }
                                 
                                 # If target model tool, we're done
                                 if tool_call['name'] == 'use_target_model':
