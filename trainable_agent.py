@@ -54,10 +54,25 @@ class PersonalityDatabase:
             try:
                 with open(metadata_file, 'r') as f:
                     self.metadata = json.load(f)
+                # Clean up metadata - remove entries for files that don't exist
+                self._cleanup_metadata()
             except:
                 self.metadata = {}
         else:
             self.metadata = {}
+    
+    def _cleanup_metadata(self):
+        """Remove metadata entries for personality files that don't exist"""
+        to_remove = []
+        for personality_id, meta in self.metadata.items():
+            conversation_file = meta.get('conversation_file', '')
+            if not os.path.exists(conversation_file):
+                to_remove.append(personality_id)
+        
+        if to_remove:
+            for personality_id in to_remove:
+                del self.metadata[personality_id]
+            self._save_metadata()
     
     def _save_metadata(self):
         """Save metadata to disk"""

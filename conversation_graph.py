@@ -16,13 +16,14 @@ class ConversationState(TypedDict):
 class ConversationManager:
     """Manages conversations using Langraph and stores them in SQLite"""
     
-    def __init__(self):
+    def __init__(self, personality_db=None):
         self.llm = ChatAnthropic(
             model="claude-3-5-sonnet-20241022",
             api_key=Config.CLAUDE_API_KEY,
             temperature=0.7
         )
         self.attack_agent = AttackAgent()
+        self.personality_db = personality_db
         self.init_database()
         self.graph = self.create_graph()
     
@@ -236,7 +237,7 @@ class ConversationManager:
             # Load personality if provided
             personality_id = test_params.get('personality_id')
             if personality_id:
-                self.attack_agent.load_personality(personality_id)
+                self.attack_agent.load_personality(personality_id, self.personality_db)
         
         # Validate user input
         if not user_input or not user_input.strip():

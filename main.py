@@ -30,9 +30,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Initialize conversation manager
-conversation_manager = ConversationManager()
-
 # Initialize knowledge management system
 knowledge_manager = KnowledgeManager()
 knowledge_uploader = KnowledgeUploader()
@@ -40,6 +37,9 @@ knowledge_uploader = KnowledgeUploader()
 # Initialize training system
 # Initialize personality database
 personality_db = PersonalityDatabase()
+
+# Initialize conversation manager with personality database
+conversation_manager = ConversationManager(personality_db)
 current_training_sessions = {}  # Store active training sessions
 
 # Store active simple chat sessions
